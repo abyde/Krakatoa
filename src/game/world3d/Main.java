@@ -1,6 +1,7 @@
 package game.world3d;
 
 import java.awt.*;
+import java.util.Random;
 
 import javax.swing.*;
 import javax.vecmath.*;
@@ -81,7 +82,7 @@ public class Main extends JFrame{
 		TransformGroup steerTG = universe.getViewingPlatform().getViewPlatformTransform();
 		Transform3D t3d = new Transform3D();
 		steerTG.getTransform(t3d);
-		t3d.lookAt(new Point3d(-2, 5, 10), new Point3d(-1, 0, 0), new Vector3d(0,1,0));
+		t3d.lookAt(new Point3d(-10, 10, 20), new Point3d(0, 0, 0), new Vector3d(0,1,0));
 		//arguments are: viewer position, where looking and up direction
 		t3d.invert();
 		steerTG.setTransform(t3d);
@@ -91,6 +92,40 @@ public class Main extends JFrame{
 		universe.addBranchGraph(scene);
 	}
 	private void addWorld(){
-		//TODO add blocks here
+		//make the floor go 0.5 down
+		TransformGroup tg = new TransformGroup();
+		BranchGroup bg = new CheckerFloor().getBG();
+		tg.addChild(bg);
+		Transform3D move = new Transform3D();
+		move.setTranslation(new Vector3d(0, -0.5, 0));
+		tg.setTransform(move);
+		scene.addChild(tg);
+		
+		int w = 3;
+		int n = 4;
+		Random r = new Random(1);
+		for (int i = -w; i <= w; i++) {
+			scene.addChild(new Block3D(0, i, 0, -w - 1).t);
+			scene.addChild(new Block3D(0, i, 0, w + 1).t);
+			scene.addChild(new Block3D(0, -w - 1, 0, i).t);
+			scene.addChild(new Block3D(0, w + 1, 0, i).t);
+
+			if (Math.abs(i) <= 1) {
+				scene.addChild(rand(r, i, 0, -w -2).t);
+				scene.addChild(rand(r, i, 0, w + 2).t);
+				scene.addChild(rand(r, -w - 2, 0, i).t);
+				scene.addChild(rand(r, w + 2, 0, i).t);
+			}
+		}
+
+		for (int i = 0; i < n; i++) {
+			scene.addChild(new Block3D(0, -w - 1, i, -w -1).t);
+			scene.addChild(new Block3D(0, -w - 1, i, w + 1).t);
+			scene.addChild(new Block3D(0, w + 1, i, -w -1).t);
+			scene.addChild(new Block3D(0, w + 1, i, w + 1).t);
+		}
+	}
+	private static Block3D rand(Random r, int x, int y, int z) {
+		return new Block3D(0, x, y, z);
 	}
 }
