@@ -9,19 +9,21 @@ import java.util.Comparator;
  */
 public class Block {
 
-	public static Comparator<Block> VIEW_ORDER = new Comparator<Block>() {
-		public int compare(Block b1, Block b2) {
-			assert (b1 != null);
-			assert (b2 != null);
-			int c = b1.z - b2.z;
-			if (c != 0)
-				return c;
-			c = b1.x - b2.x;
-			if (c != 0)
-				return c;
-			return b1.y - b2.y;
-		}
-	};
+	public static Comparator<Block> VIEW_ORDER(final int sgnX, final int sgnY) {
+		return new Comparator<Block>() {
+			public int compare(Block b1, Block b2) {
+				assert (b1 != null);
+				assert (b2 != null);
+				int c = b1.z - b2.z;
+				if (c != 0)
+					return c;
+				c = sgnX * (b1.x - b2.x);
+				if (c != 0)
+					return c;
+				return sgnY * (b1.y - b2.y);
+			}
+		};
+	}
 
 	private static int id_counter = 0;
 	private int x, y, z;
@@ -40,7 +42,7 @@ public class Block {
 		this.y = y;
 		this.z = z;
 	}
-	
+
 	public int x() {
 		return x;
 	}
