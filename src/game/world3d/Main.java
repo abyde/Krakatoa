@@ -101,31 +101,39 @@ public class Main extends JFrame{
 		tg.setTransform(move);
 		scene.addChild(tg);
 		
+		float[] def = {HeightBlock3D.size, HeightBlock3D.size, HeightBlock3D.size,
+				HeightBlock3D.size};
+		
 		int w = 3;
 		int n = 4;
-		Random r = new Random(1);
 		for (int i = -w; i <= w; i++) {
-			scene.addChild(new Block3D(0, i, 0, -w - 1).t);
-			scene.addChild(new Block3D(0, i, 0, w + 1).t);
-			scene.addChild(new Block3D(0, -w - 1, 0, i).t);
-			scene.addChild(new Block3D(0, w + 1, 0, i).t);
+			scene.addChild(new HeightBlock3D(def, i, 0, -w - 1).t);
+			scene.addChild(new HeightBlock3D(def, i, 0, w + 1).t);
+			scene.addChild(new HeightBlock3D(def, -w - 1, 0, i).t);
+			scene.addChild(new HeightBlock3D(def, w + 1, 0, i).t);
 
 			if (Math.abs(i) <= 1) {
-				scene.addChild(rand(r, i, 0, -w -2).t);
-				scene.addChild(rand(r, i, 0, w + 2).t);
-				scene.addChild(rand(r, -w - 2, 0, i).t);
-				scene.addChild(rand(r, w + 2, 0, i).t);
+				scene.addChild(rand(i, 0, -w -2).t);
+				scene.addChild(rand(i, 0, w + 2).t);
+				scene.addChild(rand(-w - 2, 0, i).t);
+				scene.addChild(rand(w + 2, 0, i).t);
 			}
 		}
 
 		for (int i = 0; i < n; i++) {
-			scene.addChild(new Block3D(0, -w - 1, i, -w -1).t);
-			scene.addChild(new Block3D(0, -w - 1, i, w + 1).t);
-			scene.addChild(new Block3D(0, w + 1, i, -w -1).t);
-			scene.addChild(new Block3D(0, w + 1, i, w + 1).t);
+			scene.addChild(new HeightBlock3D(def, -w - 1, i, -w -1).t);
+			scene.addChild(new HeightBlock3D(def, -w - 1, i, w + 1).t);
+			scene.addChild(new HeightBlock3D(def, w + 1, i, -w -1).t);
+			scene.addChild(new HeightBlock3D(def, w + 1, i, w + 1).t);
 		}
+		
 	}
-	private static Block3D rand(Random r, int x, int y, int z) {
-		return new Block3D(0, x, y, z);
+	private static HeightBlock3D rand(int x, int y, int z) {
+		float[] height = {
+				(float) Math.random() - HeightBlock3D.size,
+				(float) Math.random() - HeightBlock3D.size,
+				(float) Math.random() - HeightBlock3D.size,
+				(float) Math.random() - HeightBlock3D.size};
+		return new HeightBlock3D(height, x, y, z);
 	}
 }
