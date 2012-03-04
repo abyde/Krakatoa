@@ -12,11 +12,15 @@ import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.swing.JFrame;
 
 import util.BufferCanvas;
+import util.MergeIterators;
 
 /**
  * A canvas that draws HeightBlocks in an isometric stylee.
@@ -42,9 +46,17 @@ public class IsoBlockCanvas extends BufferCanvas implements MouseListener,
 		return f;
 	}
 
+	// the world in which stuff happens
+	private IterableBlockWorld world;
+
+	// a ball rolling around in it
+	private Ball ball = null;
+	private List<Ball> ballA = new ArrayList<Ball>();
+
+	// pixels per logical unit.
 	private double scale = 40.0;
 
-	private IterableBlockWorld world;
+	// screen location of the origin (0, 0, 0)
 	private int xCenter, yCenter;
 
 	// rotation angle
@@ -79,12 +91,31 @@ public class IsoBlockCanvas extends BufferCanvas implements MouseListener,
 		this.zScale = zScale;
 	}
 
+	Comparator<Block>[][] cmp = new Comparator[2][2];
+
 	public IsoBlockCanvas(IterableBlockWorld world) {
 		this.world = world;
+		setBall(null);
 		setBackground(Color.white);
 		setTheta(0);
 		addMouseListener(this);
 		addMouseMotionListener(this);
+
+		cmp[0][0] = Block.VIEW_ORDER(1, 1);
+		cmp[0][1] = Block.VIEW_ORDER(1, -1);
+		cmp[1][0] = Block.VIEW_ORDER(-1, 1);
+		cmp[1][1] = Block.VIEW_ORDER(-1, -1);
+	}
+
+	/**
+	 * Set the ball to draw.
+	 */
+	public void setBall(Ball ball) {
+		this.ball = ball;
+		ballA.clear();
+		if (ball != null) {
+			ballA.add(ball);
+		}
 	}
 
 	/**
@@ -102,6 +133,7 @@ public class IsoBlockCanvas extends BufferCanvas implements MouseListener,
 	 * 
 	 * @see java.awt.Canvas#paint(java.awt.Graphics)
 	 */
+	@SuppressWarnings("unchecked")
 	public void paint(Graphics g) {
 
 		// avoid memory allocation costs by assigning once per paint.
@@ -125,31 +157,53 @@ public class IsoBlockCanvas extends BufferCanvas implements MouseListener,
 
 		// which order to iterate in also depends on the zone.
 		Iterator<Block> it;
-		if (zone == 2)
+		Comparator<Block> comp;
+		if (zone == 2) {
+			comp = cmp[0][0];
 			it = world.allBlocksXY();
-		else if (zone == 3)
+		} else if (zone == 3) {
+			comp = cmp[1][0];
 			it = world.allBlocksRevXY();
-		else if (zone == 1)
+		} else if (zone == 1) {
+			comp = cmp[0][1];
 			it = world.allBlocksXRevY();
-		else
+		} else {
 			// 0 or 4
+			comp = cmp[1][1];
 			it = world.allBlocksRevXRevY();
+		}
+		it = new MergeIterators<Block>(comp, new Iterator[] { it, ballA.iterator() },
+				new Block[2]);
 
 		while (it.hasNext()) {
-			IsoBlock b = (IsoBlock) it.next();
-
-			for (int f = 0; f < 3; f++) {
-				face(b, faces[f], sx, sy);
-
-				// convert to screen coordinates.
+			Block block = it.next();
+			
+			if (block instanceof Ball) {
+				// draw the ball
+				Ball b = (Ball)block;
+				ball(b, sx, sy);
 				convertToScreen(sx, sy, screenx, screeny);
-				// g.setColor(c[f]);
-				g.setColor(c[faces[f]]);
-				g.fillPolygon(screenx, screeny, 4);
-
-				// edges
+				int d = (int)(scale);
+				g.setColor(Color.blue);
+				g.fillOval(screenx[0], screeny[0], d, d);
 				g.setColor(Color.black);
-				g.drawPolygon(screenx, screeny, 4);
+				g.drawOval(screenx[0], screeny[0], d, d);
+			} else {
+				IsoBlock b = (IsoBlock) block;
+	
+				for (int f = 0; f < 3; f++) {
+					face(b, faces[f], sx, sy);
+	
+					// convert to screen coordinates.
+					convertToScreen(sx, sy, screenx, screeny);
+					// g.setColor(c[f]);
+					g.setColor(c[faces[f]]);
+					g.fillPolygon(screenx, screeny, 4);
+	
+					// edges
+					g.setColor(Color.black);
+					g.drawPolygon(screenx, screeny, 4);
+				}
 			}
 		}
 	}
@@ -174,13 +228,30 @@ public class IsoBlockCanvas extends BufferCanvas implements MouseListener,
 			double yy = b.fy[faceType][corner];
 			double z = b.fz[faceType][corner] * zScale;
 
+			// rotate...
 			double x = tc * xx + ts * yy;
 			double y = -ts * xx + tc * yy;
 
-			// rotate...
-			sx[corner] = (y - x) * L;
-			sy[corner] = (-x / 2 - y / 2 + z) * L;
+			isometric(corner, sx, sy, x, y, z);
 		}
+	}
+
+	private void isometric(int index, double[] sx, double[] sy, double x, double y, double z) {
+		sx[index] = (y - x) * L;
+		sy[index] = (-x / 2 - y / 2 + z) * L;
+	}
+	
+	/**
+	 * First "corner" is the center..
+	 */
+	private void ball(Ball b, double[] sx, double[] sy) {
+
+		// rotate...
+		double x = tc * b.p.x + ts * b.p.y;
+		double y = -ts * b.p.x + tc * b.p.y;
+		
+		// project
+		isometric(0, sx, sy, x, y, b.p.z);
 	}
 
 	/**
@@ -238,8 +309,8 @@ public class IsoBlockCanvas extends BufferCanvas implements MouseListener,
 	@Override
 	public void mouseDragged(MouseEvent e) {
 		if (e.isShiftDown()) {
-			xCenter = startXCenter + (e.getX()-startX);
-			yCenter = startYCenter + (e.getY()-startY);
+			xCenter = startXCenter + (e.getX() - startX);
+			yCenter = startYCenter + (e.getY() - startY);
 			repaint();
 		} else {
 			double dtheta = (startX - e.getX()) / 200.0;
