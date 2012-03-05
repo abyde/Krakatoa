@@ -15,6 +15,22 @@ public class BlockWorldImplTest {
 	private static Logger log = Logger.getLogger(BlockWorldImplTest.class);
 	
 	public static void main(String[] args) {
+		keyTest();
+		addTest();
+	}
+		
+	static void keyTest() {
+		BlockWorld world = new BlockWorldImpl();
+		world.add(new Block(0, -Integer.MAX_VALUE, 0, 0));
+		world.add(new Block(0, -121235, 0, 0));
+		world.add(new Block(0, -1, 0, 0));
+		world.add(new Block(0, 0, 0, 0));
+		world.add(new Block(0, 1, 0, 0));
+		world.add(new Block(0, 121235, 0, 0));
+		world.add(new Block(0, Integer.MAX_VALUE, 0, 0));
+	}
+		
+	static void addTest() {
 		int numBlocks = 100;
 		int[] x = new int[numBlocks];
 		int[] y = new int[numBlocks];

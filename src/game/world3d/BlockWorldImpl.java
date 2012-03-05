@@ -8,6 +8,8 @@ import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
+import util.Utils;
+
 /**
  * An implementation of BlockWorld which indexes blocks by VIEW_ORDER.
  */
@@ -46,18 +48,26 @@ public class BlockWorldImpl implements IterableBlockWorld {
 	 * Convert a tuple of integers into a string. For this to work, we can't use
 	 * negative coordinates.
 	 */
-	private String keyOfLocation(int x, int y, int z) {
-		if ((x < 0) || (y < 0) || (z < 0))
-			throw new IllegalArgumentException(
-					"Negative coordinates not allowed!");
-		byte[] b = new byte[6];
-		b[0] = (byte) ((x >> 8) & 0xff);
-		b[1] = (byte) (x & 0xff);
-		b[2] = (byte) ((y >> 8) & 0xff);
-		b[3] = (byte) (y & 0xff);
-		b[4] = (byte) ((z >> 8) & 0xff);
-		b[5] = (byte) (z & 0xff);
+	String keyOfLocation(int x, int y, int z) {
+		byte[] b = new byte[12];
+		bytesOfInt(b, 0, x);
+		bytesOfInt(b, 4, y);
+		bytesOfInt(b, 8, z);
 		return new String(b);
+	}
+	
+	private void bytesOfInt(byte[] b, int pos, int x) {
+		pos += 4;
+		for(int i = 0; i < 4; i++) {
+			byte bb = (byte)(x & 0xff);
+			x = x >> 8;
+			b[--pos] = bb;
+		}
+		if (x >= 0) {
+			b[pos] |= 0x80;
+		} else {
+			b[pos] &= 0x7f;
+		}
 	}
 
 	@Override
