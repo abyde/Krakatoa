@@ -1,3 +1,3 @@
 #!/bin/bash
 
-java -classpath bin game.chess.Main
+java -ea -classpath bin:lib/* $@

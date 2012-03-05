@@ -64,19 +64,21 @@ public class Dynamics {
 		}
 	}
 
-	/**
-	 * If it has crossed the plane defined by normal.v = p then bounce back.
-	 */
-	private void checkBouncePlane(Vector3d normal, double p) {
-		double bp = normal.dot(new Vector3d(nextCenter));
-
-		// TODO work out how much of the time was spent getting to the plane,
-		// and use the rest of the time rebounding.
-		if (bp > p) {
-			ball.v.x = -ball.v.x;
-			ball.v.scale(0.9);
-			nextCenter.x = x - r;
-		}
-	}
+//	/**
+//	 * If it has crossed the plane defined by normal.v = p then bounce back.
+//	 */
+//	private void checkBouncePlane(Vector3d normal, double p) {
+//		double bp = normal.dot(new Vector3d(nextCenter));
+//
+//		// TODO work out how much of the time was spent getting to the plane,
+//		// and use the rest of the time rebounding.
+//		if (bp > p) {
+//			
+//			
+//			ball.v.x = -ball.v.x;
+//			ball.v.scale(0.9);
+//			nextCenter.x = x - r;
+//		}
+//	}
 
 }
