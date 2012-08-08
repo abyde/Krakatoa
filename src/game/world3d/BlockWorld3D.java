@@ -17,16 +17,16 @@ public class BlockWorld3D {
 		
 	}
 
-	public void add(HeightBlock3D b) {
-		// TODO Auto-generated method stub
-		world[b.x + world.length/2][b.y + world[b.x].length/2][b.z + world[b.x][b.y].
-		                                                       length/2] = b;
-	}
-
-	public void remove(HeightBlock3D b) {
-		// TODO Auto-generated method stub
-		world[b.x + world.length/2][b.y + world[b.x].length/2][b.z + world[b.x][b.y].
-		                                                       length/2] = null;
-	}
+//	public void add(HeightBlock3D b) {
+//		// TODO Auto-generated method stub
+//		world[b.x + world.length/2][b.y + world[b.x].length/2][b.z + world[b.x][b.y].
+//		                                                       length/2] = b;
+//	}
+//
+//	public void remove(HeightBlock3D b) {
+//		// TODO Auto-generated method stub
+//		world[b.x + world.length/2][b.y + world[b.x].length/2][b.z + world[b.x][b.y].
+//		                                                       length/2] = null;
+//	}
 
 }
