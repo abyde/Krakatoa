@@ -1,0 +1,6 @@
+<project name="Krakatoa" basedir=".">
+  <target name="words-jar">
+    <jar destfile="words.jar" basedir="bin" manifest="Manifest">
+    </jar>
+  </target>
+</project>
