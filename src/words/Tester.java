@@ -29,7 +29,7 @@ public class Tester extends JFrame {
 
 	public static void main(String[] args) {
 		Properties props = new Properties(args);
-		wordsPath = props.getProperty("wordsPath", "/Users/andrewbyde/Desktop/brasil/words.csv");
+		wordsPath = props.getProperty("wordsPath", "/Users/ande/Documents/brasil/words.csv");
 		try {
 			Tester t = new Tester();
 		} catch (Exception e) {
