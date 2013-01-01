@@ -109,6 +109,8 @@ public class Bouncer implements KeyListener, MouseListener, MouseMotionListener 
         frame.addMouseMotionListener(this);
         frame.setVisible(true);
         
+        new Timer(this, 5000).start();
+        
         while(true){
             try{
                 Thread.sleep(20);
@@ -119,6 +121,7 @@ public class Bouncer implements KeyListener, MouseListener, MouseMotionListener 
                 e.printStackTrace();
             }
         }
+        
     }
     
     public void updatePos(){
@@ -234,15 +237,18 @@ public class Bouncer implements KeyListener, MouseListener, MouseMotionListener 
 
     public void mousePressed(MouseEvent e) {
     	Bomb bomb;
-    	if(Math.random() < 0.5)
+    	//if(Math.random() < 0.5)
     		bomb = new ThrustBomb(x + ballRadius, y + ballRadius);
-    	else
-    		bomb = new ImpossiBomb(x + ballRadius, y + ballRadius);
-    	
-        bomb.setTarget(e.getX(), e.getY());
-        bombs.add(bomb);
+    	//else
+    	//	bomb = new ImpossiBomb(x + ballRadius, y + ballRadius);
+    
+   		addBomb(bomb.setTarget(e.getX(), e.getY()));
     }
 
+    public void addBomb(Bomb bomb) {
+        bombs.add(bomb);    	
+    }
+    
     public void mouseReleased(MouseEvent e) {
     }
 
@@ -364,8 +370,9 @@ abstract class Bomb{
     	velocity = new Vec2d(0, 0);
     }
 
-    public void setTarget(double x, double y) {
+    public Bomb setTarget(double x, double y) {
     	target = new Vec2d(x, y);
+    	return this;
     }
     
     /**
@@ -392,7 +399,7 @@ abstract class Bomb{
         if (aim.length() < Math.min(10, velocity.length())){
             visible = false;
             for(int i = 0; i < Bouncer.bombParticles; i++){
-                Flame flame = new Flame((int) location.x(), (int) location.y(), 0, 0, 0);
+                Flame flame = new Flame((int) location.x(), (int) location.y(), 0, 0, Bouncer.gravity);
                 flame.setDiversion(Bouncer.explosionDiversion);
                 Bouncer.flames.add(flame);
             }
@@ -424,8 +431,8 @@ class ImpossiBomb extends Bomb {
 }
 
 class ThrustBomb extends Bomb {
-	double acceleration = 4;
-	double constV = 12.0;
+	double acceleration = 6;
+	double constV = 20.0;
 	
 	public ThrustBomb(double x, double y) {
 		super(x, y);
@@ -455,5 +462,34 @@ class ThrustBomb extends Bomb {
 		super.updateLocation();
 		velocity = velocity.normal().scale(constV);
 	}
+	
+}
+
+
+class Timer{
+	Bouncer bouncer;
+	long period;
+	
+	public Timer(Bouncer bouncer, long period){
+		this.period = period;
+		this.bouncer = bouncer;
+	}
+	
+	public void start(){
+		new Thread(new Runnable(){
+			@Override
+			public void run(){
+				while(true){
+					try {
+						Thread.sleep(period);
+						bouncer.addBomb(new ThrustBomb(400, 300).setTarget(800, 600));
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+	}
+	
 }
 
