@@ -3,4 +3,7 @@
     <jar destfile="words.jar" basedir="bin" manifest="Manifest">
     </jar>
   </target>
+  <target name="words-install" depends="words-jar">
+    <copy file="words.jar" todir="/Users/abyde/Desktop/"/>
+  </target>
 </project>
