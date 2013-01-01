@@ -286,12 +286,12 @@ class Flame{
                 blue = 234;
                 break;
             case 0:
-                //red = 225;
-                //green = 225;
-                //blue = 0;
-                red = 255;
-                green = 100;
-                blue = 100;
+                red = 225;
+                green = 225;
+                blue = 0;
+                //red = 255;
+                //green = 100;
+                //blue = 100;
                 break;
             case 1:
                 red = 225;
