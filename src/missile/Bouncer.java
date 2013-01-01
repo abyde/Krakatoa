@@ -96,7 +96,7 @@ public class Bouncer implements KeyListener, MouseListener, MouseMotionListener 
                     if(!bomb.visible)
                         continue;
                     bomb.updateLocation();
-                    g.fillArc((int) bomb.x - bombRadius, (int) bomb.y - bombRadius, bombRadius * 2, bombRadius * 2, 0, 360);
+                    g.fillArc((int) bomb.location.x() - bombRadius, (int) bomb.location.y() - bombRadius, bombRadius * 2, bombRadius * 2, 0, 360);
                 }
             }
         };
@@ -233,7 +233,13 @@ public class Bouncer implements KeyListener, MouseListener, MouseMotionListener 
     }
 
     public void mousePressed(MouseEvent e) {
-        Bomb bomb = new Bomb((int) x + ballRadius, (int) y + ballRadius, e.getX(), e.getY());
+    	Bomb bomb;
+    	if(Math.random() < 0.5)
+    		bomb = new ThrustBomb(x + ballRadius, y + ballRadius);
+    	else
+    		bomb = new ImpossiBomb(x + ballRadius, y + ballRadius);
+    	
+        bomb.setTarget(e.getX(), e.getY());
         bombs.add(bomb);
     }
 
@@ -248,8 +254,6 @@ public class Bouncer implements KeyListener, MouseListener, MouseMotionListener 
 
 	@Override
 	public void mouseDragged(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -339,73 +343,117 @@ class Flame{
         
         //this.xspeed = xspeed + (Math.random() * diversionLimit) - (diversionLimit / 2);
         //this.yspeed = yspeed + (Math.random() * diversionLimit) - (diversionLimit / 2);
-    }
-    
+    }   
 }
 
-class Bomb{
+
+
+abstract class Bomb{
     
+	Vec2d location;
+	Vec2d target;
+	Vec2d velocity;
 	double dt = 0.5;
-	double acceleration = 1;
-    double x, y;
-    double targetX, targetY;
-    double xspeed, yspeed;
+	double drag = 0.001;
+
     boolean visible = true;
     
-    public Bomb(int x, int y, int igx, int igy){
-        this.x = x;
-        this.y = y;
-        this.targetX = igx;
-        this.targetY = igy;
+    public Bomb(double x, double y){
+    	location = new Vec2d(x, y);
+    	target = new Vec2d(x, y);
+    	velocity = new Vec2d(0, 0);
     }
 
     public void setTarget(double x, double y) {
-    	targetX = x;
-    	targetY = y;
+    	target = new Vec2d(x, y);
     }
     
-    public void updateLocation(){
-
-    	/*
-        if(x - targetX < 0) xspeed = Bouncer.bombSpeed;
-        else if(x - targetX > 0) xspeed = -Bouncer.bombSpeed;
-        else xspeed = 0;
-        
-        if(y - targetY < 0) yspeed = Bouncer.bombSpeed;
-        else if(y - targetY > 0) yspeed = -Bouncer.bombSpeed;
-        else yspeed = 0;
-*/
-    	double ax, ay;
-    	ax = (targetX - x);
-    	ay = (targetY - y);
-    	double l = Math.sqrt(ax*ax + ay*ay);
-    	if (l == 0.0)
-    		return;
-    	ax /= l;
-    	ay /= l;
-    	xspeed += ax * dt * acceleration;
-    	yspeed += ay * dt * acceleration;
+    /**
+     * Main update method -- try not to over-ride!  Does the x = x + v and v = v + a stuff,
+     * does wind resistance and explosion on contact.
+     */
+    public void updateLocation() {
+    	Vec2d aim = Vec2d.diff(target, location);
+    	Vec2d resistance = velocity.scale(velocity.length()*(-drag));
+    	Vec2d acceleration = setAcceleration().add(resistance);
     	
-        x += xspeed * dt;
-        y += yspeed * dt;
-        
-        Flame particle = new Flame((int) x + Bouncer.bombRadius - Bouncer.flameRadius,
-                (int) y + Bouncer.bombRadius - Bouncer.flameRadius * 2,
-                -xspeed, - yspeed, Bouncer.gravity);
+    	// equations of motion...
+    	location = location.add(velocity.scale(dt));
+    	velocity = velocity.add(acceleration.scale(dt));
+    	
+    	// leave a flame trail!
+        Flame particle = new Flame((int) location.x() + Bouncer.bombRadius - Bouncer.flameRadius,
+                (int) location.y() + Bouncer.bombRadius - Bouncer.flameRadius * 2,
+                -velocity.x(), - velocity.y(), Bouncer.gravity);
         particle.setDiversion(Bouncer.rocketDiversion);
         Bouncer.flames.add(particle);
         
         //explode when close enough
-        int xdiff = (int) Math.abs(targetX - x);
-        int ydiff = (int) Math.abs(targetY - y);
-        if(xdiff < 10 & ydiff < 10){
+        if (aim.length() < Math.min(10, velocity.length())){
             visible = false;
             for(int i = 0; i < Bouncer.bombParticles; i++){
-                Flame flame = new Flame((int) x, (int) y, 0, 0, 0);
+                Flame flame = new Flame((int) location.x(), (int) location.y(), 0, 0, 0);
                 flame.setDiversion(Bouncer.explosionDiversion);
                 Bouncer.flames.add(flame);
             }
         }
     }
     
+    abstract Vec2d setAcceleration();
 }
+
+
+class ImpossiBomb extends Bomb {
+	double acceleration = 4;
+    
+    public ImpossiBomb(double x, double y){
+    	super(x, y);
+    }
+    
+    @Override
+    public Vec2d setAcceleration(){
+    	Vec2d aim = Vec2d.diff(target, location);
+    	Vec2d perV = aim.perpCompOf(velocity);
+    	
+    	// try to counter-act this perpendicular component.
+    	Vec2d perCorrection = perV.scale(-0.5);
+    	Vec2d acceleration = aim.normal().add(perCorrection);
+    	acceleration = acceleration.normal().scale(this.acceleration);
+    	return acceleration;
+   }   
+}
+
+class ThrustBomb extends Bomb {
+	double acceleration = 4;
+	double constV = 12.0;
+	
+	public ThrustBomb(double x, double y) {
+		super(x, y);
+	}
+	
+	@Override
+	public Vec2d setAcceleration() {
+		// get up to speed...
+		Vec2d aim = Vec2d.diff(target, location);
+		if (velocity.length() < constV/2) {
+			return aim.normal();
+		}
+
+		
+		Vec2d nv = velocity.normal();
+		
+		// 90 degrees clockwise from v... this is a clockwise turn.
+		Vec2d mainThrust = new Vec2d(nv.y(), -nv.x());
+		double dir = aim.dot(mainThrust);
+		if (dir > 0)
+			return mainThrust.scale(acceleration);
+		else
+			return mainThrust.scale(-acceleration);
+	}
+	
+	public void updateLocation() {
+		super.updateLocation();
+		velocity = velocity.normal().scale(constV);
+	}
+}
+
