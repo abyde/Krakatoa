@@ -90,10 +90,8 @@ public class PathFinder {
 			// mark the location closed before proceeding.
 			closedList.add(n.location);
 
-			// System.out.println("d = " + distanceSearched + ", n = " + n +
-			// ", open = " + openList + ", openMap = " + locationMap +
-			// ", closed = "
-			// + closedList);
+			System.out.println("d = " + distanceSearched + ", n = " + n + ", open = " + openList + ", openMap = " + locationMap + ", closed = "
+					+ closedList);
 
 			n = explore(n);
 			if (n != null) {
@@ -168,8 +166,8 @@ public class PathFinder {
 		 */
 		int[][] terrain = new int[][] { //
 		{ 3, 3, 3, 3, 3, 3, 3 }, //
-				{ 1, 3, 3, 1, 1, 3, 3 }, //
-				{ 1, 3, 3, 1, 1, 1, 3 }, //
+				{ 3, 3, 3, 1, 1, 3, 3 }, //
+				{ 1, 1, 3, 1, 1, 1, 3 }, //
 				{ 1, 3, 3, 3, 3, 3, 3 }, //
 				{ 3, 3, 1, 1, 1, 1, 1 }, //
 				{ 3, 1, 1, 3, 3, 3, 3 }, //
@@ -236,7 +234,7 @@ class Node implements Comparable<Node> {
 				g = parent.g + 10;
 		} else
 			g = 0;
-		h = manhatten(target, location);
+		h = 10 * manhatten(target, location);
 		f = g + h;
 	}
 
