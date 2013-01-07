@@ -52,4 +52,105 @@ public class Utils {
 		}
 	}
 
+	static String[] pads = new String[] { "", " ", "  ", "   ", "    ", "     ", "      " };
+
+	private static String pad(int length) {
+		assert (length >= 0);
+		if (length < pads.length)
+			return pads[length];
+		return pad(length / 2) + pad(length - length / 2);
+	}
+
+	private static String pad(int length, char c) {
+		assert (length >= 0);
+		if (length == 0)
+			return "";
+		else if (length == 1)
+			return "" + c;
+		else {
+			String s = pad(length / 2, c);
+			if (length % 2 == 0) {
+				return s + s;
+			} else {
+				return s + s + c;
+			}
+		}
+	}
+
+	public static String padCenter(int length, String x) {
+		if (x == null)
+			return pad(length, "null");
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		int leftPad = padSize / 2;
+		int rightPad = padSize - leftPad;
+		return pad(leftPad) + x + pad(rightPad);
+	}
+
+	public static String pad(int length, String x) {
+		if (x == null)
+			return pad(length, "null");
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		return pad(padSize) + x;
+	}
+
+	public static String pad(String x, int length) {
+		if (x == null)
+			return pad("null", length);
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		return x + pad(padSize);
+	}
+
+	public static String pad(String x, int length, char filler) {
+		if (x == null)
+			return pad("null", length, filler);
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		return x + pad(padSize, filler);
+	}
+
+	public static String pad(int length, String x, char filler) {
+		if (x == null)
+			return pad(length, "null", filler);
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		return pad(padSize, filler) + x;
+	}
+
+	static String[] padZeroes = new String[] { "", "0", "00", "000", "0000", "00000", "000000" };
+
+	/**
+	 * String of zeroes of the given length.
+	 */
+	private static String padZero(int length) {
+		if (length < padZeroes.length)
+			return padZeroes[length];
+		return padZero(length / 2) + padZero(length - length / 2);
+	}
+
+	public static String padZero(int length, String x) {
+		if (x == null)
+			return padZero(length);
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		return padZero(padSize) + x;
+	}
+
+	public static String padZero(String x, int length) {
+		if (x == null)
+			return padZero(length);
+		int padSize = length - x.length();
+		if (padSize < 0)
+			return x;
+		return x + padZero(padSize);
+	}
+
 }

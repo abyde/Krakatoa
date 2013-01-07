@@ -2,171 +2,276 @@ package riseOfDots.pathFinding;
 
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 import riseOfDots.World;
 import riseOfDots.entity.Mover;
+import util.Utils;
 
 public class PathFinder {
-	
+
+	/** A queue of partial paths, from shortest to longest. */
 	PriorityQueue<Node> openList = new PriorityQueue<Node>();
-	ArrayList<Point> closedList = new ArrayList<Point>();
-	
+
+	HashMap<Point, Node> locationMap = new HashMap<Point, Node>();
+
+	/** List of locations that we no longer need to evaluate. */
+	Set<Point> closedList = new HashSet<Point>();
+
 	Node begin;
 	Point end;
 	World w;
 	Mover m;
 	int distance = 1000;
-	/*
-	 * ox, oy are origin coordinates. tx and ty are target coordinate
+
+	/**
+	 * Find a path between 'start' and 'finish' in the given world.
 	 */
-	public PathFinder(int ox, int oy, int tx, int ty, World w, Mover m){
-		begin = new Node(null, ox, oy, ox, oy, tx, ty);
-		end = new Point(tx, ty);
+	public PathFinder(Point start, Point end, World w, Mover m) {
+		begin = new Node(null, start, end);
+		this.end = end;
 		this.w = w;
 		this.m = m;
 	}
-	
-	/*
+
+	/**
 	 * set path search distance, 1000 by default
 	 */
-	public void setDistance(int distance){
+	public void setDistance(int distance) {
 		this.distance = distance;
 	}
-	
-	/*
-	 * begins the algorithm
+
+	/**
+	 * Retrieve the shortest path.
 	 */
-	public ArrayList<Point> getPath(){
-		openList.add(begin);
+	private Node pollShortest() {
+		Node n = openList.poll();
+		if (n == null)
+			return null;
+		locationMap.remove(n.location);
+		return n;
+	}
+
+	/**
+	 * Add a new path to a totally new location -- neither in the closed list
+	 * nor in the open list.
+	 */
+	private void addNewPath(Node node) {
+		assert !locationMap.containsKey(node.location);
+		assert !closedList.contains(node.location);
+		openList.add(node);
+		locationMap.put(node.location, node);
+	}
+
+	private void update(Node existingPath, Node newPath) {
+		assert (existingPath.location.equals(newPath.location));
+		existingPath.parent = newPath.parent;
+		existingPath.f = newPath.f;
+		existingPath.g = newPath.g;
+		existingPath.h = newPath.h;
+	}
+
+	/**
+	 * Run the algorithm.
+	 */
+	public ArrayList<Point> getPath() {
+		this.addNewPath(begin);
+
 		ArrayList<Point> path = null;
-		for(int distanceSearched = 0; distanceSearched < distance; distanceSearched++){
-			Node n = openList.poll();
-			closedList.add(new Point(n.x, n.y));
-			Node target = explore(n);
-			if(target != null){
+		for (int distanceSearched = 0; distanceSearched < distance; distanceSearched++) {
+			// get the most promising path so far.
+			Node n = pollShortest();
+			if (n == null)
+				return null;
+
+			// mark the location closed before proceeding.
+			closedList.add(n.location);
+
+			// System.out.println("d = " + distanceSearched + ", n = " + n +
+			// ", open = " + openList + ", openMap = " + locationMap +
+			// ", closed = "
+			// + closedList);
+
+			n = explore(n);
+			if (n != null) {
+				// found the target!
 				path = new ArrayList<Point>();
-				path.add(end);
-				Node prev = target;
-				while(true){
-					prev = prev.parent;
-					if(prev == null)
-						break;
-					if(prev.equals(begin))
-						break;
-					path.add(new Point(prev.x, prev.y));
-					Collections.reverse(path);
-				}
+				Point p;
+				do {
+					p = n.location;
+					path.add(0, p);
+					n = n.parent;
+				} while (n != null);
 				break;
 			}
 		}
 		return path;
 	}
-	
-	/*
+
+	/**
 	 * put all movable nodes that are not on the closed list into the open list
 	 */
-	private Node explore(Node n){
-		for(int x = n.x - 1; x <= n.x + 1; x++)
-			for(int y = n.y - 1; y <= n.y + 1; y++){
-				//check if coordinates are out of bounds, in closed list or unmovable
-				if(x < 0 | x >= w.size() | y < 0 | y >= w.size()
-						| closedList.contains(new Point(x, y)) | !w.canMove(m, x, y)) continue;
-				
-				Node c = new Node(n, x, y, begin.x, begin.y, end.x, end.y);
-				if(!openList.contains(c))
-					openList.add(c);
-				else{
-					openList.remove(c);
-					int g1 = c.g;
-					int g2 = n.g + 10;
-					if(n.x != c.x & n.y != c.y)
-						g2 += 4;
-					if(g2 < g1)
-						c.parent = n;
-					openList.add(c);
+	private Node explore(Node n) {
+		for (int x = Math.max(0, n.location.x - 1); x <= Math.min(n.location.x + 1, w.size() - 1); x++) {
+			for (int y = Math.max(0, n.location.y - 1); y <= Math.min(n.location.y + 1, w.size() - 1); y++) {
+
+				// displacement must be non-zero
+				if (x == 0 && y == 0)
+					continue;
+
+				// blocked
+				if (!w.canMove(m, x, y))
+					continue;
+
+				// where is this new point?
+				Point newLocation = new Point(x, y);
+
+				// visited it already
+				if (closedList.contains(newLocation))
+					continue;
+
+				// if there is an existing node for this location then
+				// update the costs in place.
+				Node newNode = new Node(n, newLocation, end);
+				Node existingNode = locationMap.get(newLocation);
+				if (existingNode == null) {
+					addNewPath(newNode);
+				} else {
+
+					// shorter path => update.
+					// System.out.println("    Old path = " +
+					// existingNode.toStringPath() + " cost = " +
+					// existingNode.toStringCost());
+					// System.out.println("    New path = " +
+					// newNode.toStringPath() + " cost = " +
+					// newNode.toStringCost());
+					if (existingNode.f > newNode.f) {
+						update(existingNode, newNode);
+					}
 				}
-				
-				//check if this node is the target
-				if(c.x == end.x & c.y == end.y)
-					return c;
+
+				// check if this node is the target
+				if (newNode.h == 0)
+					return newNode;
 			}
+		}
 		return null;
 	}
-	
-	public static void main(String[] args){
-		int[][] terrain = new int[][]{
-				{3, 3, 3, 3, 3, 3, 3},
-				{3, 3, 3, 3, 3, 3, 3},
-				{3, 3, 3, 1, 3, 3, 3},
-				{3, 3, 3, 1, 3, 3, 3},
-				{3, 3, 3, 1, 3, 3, 3},
-				{3, 3, 3, 3, 3, 3, 3},
-				{3, 3, 3, 3, 3, 3, 3}
-		};
+
+	public static void main(String[] args) {
+		/*
+		 * remember that this array is the transpose of what will appear:
+		 * terrain[0] is the first *column* not the first *row*.
+		 */
+		int[][] terrain = new int[][] { //
+		{ 3, 3, 3, 3, 3, 3, 3 }, //
+				{ 1, 3, 3, 1, 1, 3, 3 }, //
+				{ 1, 3, 3, 1, 1, 1, 3 }, //
+				{ 1, 3, 3, 3, 3, 3, 3 }, //
+				{ 3, 3, 1, 1, 1, 1, 1 }, //
+				{ 3, 1, 1, 3, 3, 3, 3 }, //
+				{ 3, 3, 3, 3, 3, 3, 3 } };
 		World w = new World(7, terrain);
-		PathFinder pf = new PathFinder(3, 1, 3, 5, w, null);
+		Mover walker = new Mover() {
+			@Override
+			public boolean canWalk() {
+				return true;
+			}
+
+			@Override
+			public boolean canNavigate() {
+				return false;
+			}
+		};
+
+		Point start = new Point(0, 0);
+		Point end = new Point(6, 6);
+		PathFinder pf = new PathFinder(start, end, w, walker);
 		ArrayList<Point> path = pf.getPath();
-		for(int x = 0; x < 7; x++){
-			for(int y = 0; y < 7; y++){
-				if((x == 3 & y == 1) | (x == 3 & y == 5)){
-					System.out.print("o ");
+		System.out.println("Path = " + path);
+		if (path == null)
+			System.out.println("UNREACHABLE");
+
+		for (int y = 0; y < terrain.length; y++) {
+			for (int x = 0; x < terrain.length; x++) {
+				Point p = new Point(x, y);
+				if (p.equals(start) || p.equals(end)) {
+					System.out.print(" o ");
 					continue;
 				}
-				Point p = new Point(x, y);
-				if(path.contains(p)) System.out.print(path.indexOf(p)+" ");
-				else{
-					if(terrain[x][y] == 3)
-						System.out.print("  ");
+				if (path.contains(p))
+					System.out.print(Utils.pad(2, "" + path.indexOf(p)) + " ");
+				else {
+					if (terrain[x][y] == 3)
+						System.out.print("   ");
 					else
-						System.out.print("| ");
+						System.out.print(" # ");
 				}
 			}
 			System.out.println();
 		}
 	}
-	
+
 }
 
-class Node implements Comparable<Node>{
-	
+class Node implements Comparable<Node> {
+
 	public Node parent;
-	public int x, y, g, h, f, tx, ty;
-	
-	public Node(Node parent, int x, int y, int ox, int oy, int tx, int ty){
+	Point location;
+	int f, g, h;
+
+	public Node(Node parent, Point location, Point target) {
 		this.parent = parent;
-		this.x = x;
-		this.y = y;
-		this.tx = tx;
-		this.ty = ty;
-		if(parent != null){
-			g = parent.g + 10;
-			if(parent.x != x & parent.y != y) g += 4;
-		}
-		else
+		this.location = location;
+		if (parent != null) {
+			int parentDistance = manhatten(parent, this);
+			assert parentDistance > 0;
+			assert parentDistance <= 2;
+			if (parentDistance == 2)
+				g = parent.g + 14;
+			else
+				g = parent.g + 10;
+		} else
 			g = 0;
-		h = Math.abs(tx - x) + Math.abs(ty - y);
+		h = manhatten(target, location);
 		f = g + h;
+	}
+
+	/**
+	 * Manhatten distance between two.
+	 */
+	public static int manhatten(Point p1, Point p2) {
+		return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+	}
+
+	/**
+	 * Manhatten distance between two.
+	 */
+	public static int manhatten(Node n1, Node n2) {
+		return Math.abs(n1.location.x - n2.location.x) + Math.abs(n1.location.y - n2.location.y);
 	}
 
 	@Override
 	public int compareTo(Node node) {
-		if(node.x == x & node.y == y) return 0;
-		if(node.f > f) return 1;
-		else if(node.f == f) return 0;
-		else return -1;
+		return f - node.f;
 	}
-	
-	public void recalculate(){
-		if(parent != null){
-			g = parent.g + 10;
-			if(parent.x != x & parent.y != y) g += 4;
-		}
+
+	public String toString() {
+		return "(x=" + location.x + ",y=" + location.y + ",f=" + f + ",g=" + g + ",h=" + h + ")";
+	}
+
+	public String toStringCost() {
+		return "g=" + g + " + h=" + h + " = f=" + f;
+	}
+
+	public String toStringPath() {
+		String me = "(x=" + location.x + ",y=" + location.y + ")";
+		if (parent == null)
+			return me;
 		else
-			g = 0;
-		h = Math.abs(tx - x) + Math.abs(ty - y);
-		f = g + h;
+			return parent.toStringPath() + "=" + me;
 	}
-	
 }
